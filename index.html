@@ -309,7 +309,7 @@
 
 	          </div>
 	        </div>
-	        <div class="bg-container">
+	        <div class="bg-container" id="font_normal">
 	          <div class="bg-container-current">
 
 	          </div>
@@ -324,7 +324,7 @@
 
 	          </div>
 	        </div>
-	        <div class="bg-container">
+	        <div class="bg-container" id="font_night">
 	          <div class="bg-container-current">
 
 	          </div>
@@ -525,6 +525,7 @@
 					Dom.day_icon.show();
 					Dom.night_icon.hide();
 					initBackgroundColor = "#2C364A";
+					$('#font_night').trigger('click');
 					Dom.body.css("background-color",initBackgroundColor);
 					Util.StorageSetter("background_color",initBackgroundColor);
 					Util.StorageSetter("is_night","night");
@@ -532,6 +533,7 @@
 					Dom.day_icon.hide();
 					Dom.night_icon.show();
 					initBackgroundColor = "#E9DFC7";
+					$('#font_normal').trigger('click');
 					Dom.body.css("background-color",initBackgroundColor);
 					Util.StorageSetter("background_color",initBackgroundColor);
 					Util.StorageSetter("is_night","day");
