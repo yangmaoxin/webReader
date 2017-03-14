@@ -273,19 +273,7 @@
 		</div>
 		<div id="fition_chapter_title" class="container"></div>
 		<div id="fition_container" class="m-read-content">
-		<h4>的撒酒疯啊说法</h4>
-		<p>
-			撒饭卡舒服发生立法会啊酸辣粉拉开法律上飞机啊是风景发生了飞机啊老师，阿斯顿好。对撒谎卡萨法，撒娇啊撒饭卡舒服开发哈咖啡啊是咖啡拉花拉开始发货阿莱克斯饭后卡拉是废话了卡收费啦舒服了卡洪水泛滥卡号；啊是废话。
-		</p>
-		<p>
-			撒饭卡舒服发生立法会啊酸辣粉拉开法律上飞机啊是风景发生了飞机啊老师，阿斯顿好。对撒谎卡萨法，撒娇啊撒饭卡舒服开发哈咖啡啊是咖啡拉花拉开始发货阿莱克斯饭后卡拉是废话了卡收费啦舒服了卡洪水泛滥卡号；啊是废话。
-		</p>
-		<p>
-			撒饭卡舒服发生立法会啊酸辣粉拉开法律上飞机啊是风景发生了飞机啊老师，阿斯顿好。对撒谎卡萨法，撒娇啊撒饭卡舒服开发哈咖啡啊是咖啡拉花拉开始发货阿莱克斯饭后卡拉是废话了卡收费啦舒服了卡洪水泛滥卡号；啊是废话。
-		</p>
-		<p>
-			撒饭卡舒服发生立法会啊酸辣粉拉开法律上飞机啊是风景发生了飞机啊老师，阿斯顿好。对撒谎卡萨法，撒娇啊撒饭卡舒服开发哈咖啡啊是咖啡拉花拉开始发货阿莱克斯饭后卡拉是废话了卡收费啦舒服了卡洪水泛滥卡号；啊是废话。
-		</p>
+ 			
 		</div>
 
 		<div class="m-button-bar">
@@ -386,9 +374,22 @@
      			return localStorage.setItem(prefix + key,val);
 
      		}
+	        var getJsonp = function (url,callback) {
+	          return $.jsonp({ // 跨域jsonp插件
+	            url: url,
+	            cache: true,
+	            callback: "duokan_fiction_chapter", // 与后台约定函数名称
+	            success: function (result) {
+	              var base64Data = $.base64.decode(result); // 解码base64插件
+	              var jsonData = decodeURIComponent(escape(base64Data)); // 1.escape()对字符串进行编码;2.decodeURIComponent()对含有编码 URI 组件或其他要解码的文本进行解码
+	              callback(jsonData);
+	            }
+	          })
+	        }
      		return {
      			StorageGetter:StorageGetter,
-     			StorageSetter:StorageSetter
+     			StorageSetter:StorageSetter,
+     			getJsonp: getJsonp
      		}
      	})();
 
@@ -408,6 +409,8 @@
 
      	var Win = $(window);
      	var Doc = $(document);
+     	var readerModel;
+     	var readerUI;
      	var fition_container = $('#fition_container');
      	var initFontSize = Util.StorageGetter('font_size');
      	initFontSize = parseInt(initFontSize);
@@ -428,12 +431,8 @@
      	}
 
      	var initBgContainerActive = Util.StorageGetter("bgActive");
-		console.log(initBgContainerActive);
      	$(".bg-container").each(function (index,element) {
      		$(this).data("active",index);
-
-     		 console.log("attr---",$(this).attr("data-active"));
-
 	     	if($(this).attr("data-active") === initBgContainerActive){
 	     		$(this).addClass("active");
 	     	}     		
@@ -444,6 +443,12 @@
 
      	function main(){
      		// todo整个项目的入口函数
+     		readerModel = ReaderModel();
+	        readerUI = ReaderBaseFrame(fition_container)
+	        readerModel.init(function (data) {
+	          readerUI(data);
+	        });
+
      		EventHanlder();
      	}
 
@@ -453,12 +458,91 @@
      	//数据层
         function ReaderModel(){
         	//todo 实现和阅读器相关的数据交互方法
+			var Chapter_id;
+			//章节数
+			var ChapterTotal;
+        	// 获得章节列表信息
+        	var init = function(UIcallback){
+        		getFictionInfo(function(){
+        			getCurrentChapterContent(Chapter_id,function(data){
+        				UIcallback && UIcallback(data);
+        			})
+        		})
+        	}
+        	var getFictionInfo = function(callback){
+        		$.get('data/chapter.json',function(data){
+        			//获得章节信息之后的回调
+		            Chapter_id = Util.StorageGetter("last_chapter_id");
+		            if(Chapter_id == null){
+		            	Chapter_id = data.chapters[1].chapter_id;
+		            }
+		            ChapterTotal = data.chapters.length;
+//		            Util.StorageSetter("last_chapter_id",chapterId);
+        			callback && callback(data);
+        		},'json');
+        	};
+        	// 根据章节信息获得当前章节内容
+        	var getCurrentChapterContent = function(chapter_id,callback){
+        		$.get('data/data' + Chapter_id + '.json',function(data){
+        			if(data.result == 0){
+        				// 获取成功，得到数据地址
+        				var url = data.jsonp;
+        				// 跨域访问数据--jsonp
+        				Util.getJsonp(url,function(data){
+        					//if(callback){callback();}
+        					callback && callback(data);
+        				});
+        			}
+        		},'json')
+        	};
+        
+	        // 上一页
+	        var prevChapter = function (UIcallback) {
+	          Chapter_id = parseInt(Chapter_id,10);
+	          if (Chapter_id == 0) {
+	            return;
+	          }
+	          Chapter_id -= 1;
+	          getCurrentChapterContent(Chapter_id,UIcallback);
+	          Util.StorageSetter("last_chapter_id",Chapter_id);
+	          Win.scrollTop(0);
+	        };
+	
+	        // 下一页
+	        var nextChapter = function (UIcallback) {
+	          Chapter_id = parseInt(Chapter_id,10);
+	          if (Chapter_id == ChapterTotal) {
+	            return;
+	          }
+	          Chapter_id += 1;
+	          getCurrentChapterContent(Chapter_id,UIcallback);
+	          Util.StorageSetter("last_chapter_id",Chapter_id);
+	          Win.scrollTop(0);
+	        };
+	        
+        	return{
+        		init :init,
+				prevChapter: prevChapter,
+				nextChapter: nextChapter
+        	};
         }
 
-       	//UI
-       	function ReaderBaseFrame(){
-       		//tudo 渲染基本的UI结构
-       	}
+       	//渲染基本的阅读器结构
+	    function ReaderBaseFrame(container) {
+	      function parseChapterData(jsonData) {
+	        var jsonParserData = JSON.parse(jsonData);
+	        var html = "<h4>" + jsonParserData.t + "</h4>";
+	        for (var i = 0; i < jsonParserData.p.length; i++) {
+	          html += "<p>" + jsonParserData.p[i] + "</p>"
+	        }
+	        return html;
+	      }
+	
+	      return function (data) {
+	        container.html(parseChapterData(data));
+	      }
+	
+	    }
 
        	/**
        	 * 触发弹出层
@@ -565,8 +649,27 @@
        			Dom.top_nav.hide();
        			Dom.nav_pannel.hide();
        			Dom.font_button.removeClass('icon-font-actived');	       			
-       		})
+       		});
+       		
+       		$("#prev_button").click(function(){
+       			//获得章节的翻页数据，把数据渲染出来
+       			readerModel.prevChapter(function(data){
+       				readerUI(data);
+       			})
+       		});
+       		
+       		$("#next_button").click(function(){
+       			readerModel.nextChapter(function(data){
+       				readerUI(data);
+       			})
+       		});
+       		
+       		
+       		
        	} 
+
+
+
 
        	main();
 
